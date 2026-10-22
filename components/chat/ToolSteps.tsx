@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from "lucide-react";
 import type { ToolStep } from "@/lib/api/schemas";
 
@@ -8,14 +8,18 @@ function formatElapsed(ms: number) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
+// Done: "Loaded skill, generated image". Matches Galaxy's collapsed summary.
 function summarize(steps: ToolStep[]) {
-  const [first, ...rest] = steps;
-  if (rest.length === 0) return first.label;
-  return `${first.label}, ${rest.length} other step${rest.length > 1 ? "s" : ""}`;
+  const labels = [...new Set(steps.map((s) => s.label))];
+  return labels.map((l, i) => (i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1))).join(", ");
 }
 
 export function ToolSteps({ steps }: { steps: ToolStep[] }) {
+  const running = steps.findLast((s) => s.status === "running");
   const [open, setOpen] = useState(false);
+  // Expanded while a step is running, collapsed to the summary once everything finishes.
+  const isRunning = Boolean(running);
+  useEffect(() => setOpen(isRunning), [isRunning]);
   if (steps.length === 0) return null;
 
   return (
@@ -24,7 +28,15 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        {summarize(steps)}
+        {running ? (
+          <span className="flex items-center gap-1.5">
+            <span className="tracking-widest">···</span>
+            {running.label}
+            <span className="tabular-nums">{Math.floor(running.elapsedMs / 1000)}s</span>
+          </span>
+        ) : (
+          summarize(steps)
+        )}
         {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
       </button>
       {open && (
