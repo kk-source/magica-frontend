@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@/lib/api/chats";
+import { meKey } from "@/lib/api/me";
 import { useSendMessage } from "@/lib/api/messages";
 import { useCancelRun, useRunStatus } from "@/lib/api/runs";
 import { isActiveRun } from "@/lib/api/schemas";
@@ -47,6 +49,7 @@ export function ChatView({ chatId }: { chatId: string }) {
     if (last?.role === "assistant" && last.runId && isActiveRun(last.status)) startRun(last.runId);
   }, [history, activeRunId, startRun]);
 
+  const queryClient = useQueryClient();
   const { data: run } = useRunStatus(chatId, activeRunId);
   const [runError, setRunError] = useState<string | null>(null);
   const runStartedAt = useRef(0);
@@ -66,11 +69,12 @@ export function ChatView({ chatId }: { chatId: string }) {
     if (isActiveRun(run.status)) return;
     if (run.status === "FAILED") setRunError(run.error ?? "Something went wrong.");
     // Terminal: swap the live bubble for the persisted reply.
+    void queryClient.invalidateQueries({ queryKey: meKey });
     void refetch().then(() => {
       endRun();
       clearPendingMessages();
     });
-  }, [run, activeRunId, setLiveRun, refetch, endRun, clearPendingMessages]);
+  }, [run, activeRunId, setLiveRun, refetch, endRun, clearPendingMessages, queryClient]);
 
   const send = useSendMessage(chatId);
   const cancel = useCancelRun(chatId);

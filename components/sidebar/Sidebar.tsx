@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChats, useCreateChat } from "@/lib/api/chats";
+import { useMe } from "@/lib/api/me";
 import { useUiStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -40,6 +41,7 @@ const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
 export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const credits = useMe().data?.credits;
   const pathname = usePathname();
   const router = useRouter();
   const { isSignedIn } = useAuth();
@@ -126,7 +128,7 @@ export function Sidebar() {
           <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
             <span className="flex items-center gap-1.5">
               <Zap className="size-4 text-yellow-400" />
-              1,000 credits
+              {credits?.toLocaleString() ?? "—"} credits
             </span>
             <Button size="sm" variant="secondary" className="h-7 text-xs">
               Add Credits
