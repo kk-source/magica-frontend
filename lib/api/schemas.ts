@@ -11,6 +11,13 @@ export const ChatSchema = z.object({
 });
 export type Chat = z.infer<typeof ChatSchema>;
 
+export const ToolStepSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(["running", "done", "error"]).default("done"),
+});
+export type ToolStep = z.infer<typeof ToolStepSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -18,6 +25,9 @@ export const MessageSchema = z.object({
   content: z.string(),
   status: RunStatusSchema.nullish(),
   runId: z.string().nullish(),
+  toolSteps: z.array(ToolStepSchema).nullish(),
+  credits: z.number().nullish(),
+  suggestions: z.array(z.string()).nullish(),
   createdAt: z.string(),
 });
 export type Message = z.infer<typeof MessageSchema>;
@@ -27,6 +37,7 @@ export const RunSchema = z.object({
   chatId: z.string(),
   status: RunStatusSchema,
   text: z.string().default(""),
+  toolSteps: z.array(ToolStepSchema).default([]),
   error: z.string().nullish(),
 });
 export type Run = z.infer<typeof RunSchema>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Monitor, Sparkles, Zap } from "lucide-react";
+import { ChevronDown, FolderOpen, Monitor, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,10 +27,12 @@ export function ChatHeader({ credits = 1000 }: { credits?: number }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Computer">
           <Monitor />
-          Computer
+        </Button>
+        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Files">
+          <FolderOpen />
         </Button>
         <span className="flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-sm">
           <Zap className="size-3.5 text-yellow-400" />

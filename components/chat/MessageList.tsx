@@ -9,11 +9,12 @@ export function MessageList() {
   const messages = useChatStore((s) => s.messages);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const streamingText = useChatStore((s) => s.streamingText);
+  const streamingSteps = useChatStore((s) => s.streamingSteps);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, streamingText]);
+  }, [messages.length, streamingText, streamingSteps.length]);
 
   return (
     <ScrollArea className="min-h-0 flex-1">
@@ -25,10 +26,15 @@ export function MessageList() {
               key={m.id}
               role={m.role}
               content={m.content}
+              toolSteps={m.toolSteps}
+              credits={m.credits}
+              createdAt={m.createdAt}
               pending={m.status === "PENDING" || m.status === "STREAMING"}
             />
           ))}
-        {isStreaming && <MessageBubble role="assistant" content={streamingText} pending />}
+        {isStreaming && (
+          <MessageBubble role="assistant" content={streamingText} toolSteps={streamingSteps} pending />
+        )}
         <div ref={endRef} />
       </div>
     </ScrollArea>

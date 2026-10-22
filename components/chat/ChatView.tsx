@@ -16,7 +16,7 @@ import { MessageList } from "./MessageList";
 export function ChatView({ chatId }: { chatId: string }) {
   const { getToken } = useAuth();
   const initialRunId = useSearchParams().get("run");
-  const { activeRunId, isStreaming, setActiveChat, setMessages, addMessage, startRun, endRun } = useChatStore();
+  const { activeRunId, isStreaming, messages, setActiveChat, setMessages, addMessage, startRun, endRun } = useChatStore();
 
   useEffect(() => {
     setActiveChat(chatId);
@@ -48,6 +48,8 @@ export function ChatView({ chatId }: { chatId: string }) {
     endRun();
   };
 
+  const suggestion = messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
+
   return (
     <div className="flex h-full flex-col">
       <ChatHeader />
@@ -56,6 +58,8 @@ export function ChatView({ chatId }: { chatId: string }) {
         <Composer
           onSubmit={(text) => send.mutate(text)}
           onStop={stop}
+          variant="chat"
+          suggestion={suggestion}
           isStreaming={isStreaming || send.isPending}
         />
       </div>
