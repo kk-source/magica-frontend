@@ -149,9 +149,9 @@ export function ChatView({ chatId }: { chatId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      <ChatHeader />
+      <ChatHeader showFiles />
       <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
-      <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+      <div className="mx-auto w-full max-w-[932px] px-4 pb-4">
         {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
         <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />
       </div>

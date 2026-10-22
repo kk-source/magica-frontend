@@ -37,10 +37,10 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
         ) : (
           summarize(steps)
         )}
-        {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
       </button>
       {open && (
-        <ul className="mt-2 divide-y divide-white/10 rounded-lg border border-white/10 text-sm">
+        <ul className="mt-2 divide-y divide-border rounded-xl border border-border text-sm">
           {steps.map((step, i) => (
             <li key={i} className="flex items-center gap-2 px-3 py-2">
               {step.status === "running" && <Loader2 className="size-4 animate-spin text-muted-foreground" />}

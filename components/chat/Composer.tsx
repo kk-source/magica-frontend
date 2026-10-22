@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ArrowUp, FileVideo, FolderOpen, Loader2, Mic, Paperclip, Plug, RotateCw, Square, Wrench, X } from "lucide-react";
+import { ArrowUp, FileVideo, Folder, Loader2, Mic, Paperclip, Plug, Puzzle, RotateCw, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { AttachmentInput } from "@/lib/api/messages";
@@ -14,7 +14,7 @@ type ComposerProps = {
   onStop?: () => void;
   isStreaming?: boolean;
   disabled?: boolean;
-  /** "home" shows the project picker; "chat" shows tools + connectors and the follow-up chip. */
+  /** "home" adds the project picker; "chat" adds the follow-up chip. */
   variant?: "home" | "chat";
   suggestion?: string | null;
   className?: string;
@@ -46,14 +46,17 @@ export function Composer({
   return (
     <div className={cn("w-full", className)}>
       {variant === "chat" && suggestion && !isStreaming && (
-        <button
-          onClick={() => setValue(suggestion)}
-          className="mb-2 max-w-full truncate rounded-full border border-white/10 px-3.5 py-1.5 text-sm text-white/80 transition-colors hover:bg-white/5"
-        >
-          {suggestion}
-        </button>
+        <div className="mb-2 flex min-w-0 items-center gap-2 text-sm">
+          <span className="shrink-0 text-xs text-muted-foreground">Suggested</span>
+          <button
+            onClick={() => setValue(suggestion)}
+            className="min-w-0 truncate rounded-lg bg-card px-2 py-1 text-foreground/85 transition-colors hover:bg-accent"
+          >
+            {suggestion}
+          </button>
+        </div>
       )}
-      <div className="rounded-3xl border border-white/10 bg-[#161616] p-3 shadow-lg focus-within:border-white/20">
+      <div className="rounded-3xl border border-transparent bg-card p-3 focus-within:border-border">
         {uploads.items.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2 px-1">
             {uploads.items.map((item) => (
@@ -71,12 +74,12 @@ export function Composer({
               submit();
             }
           }}
-          placeholder={variant === "chat" ? "Send a message…" : "Assign a task or ask anything…"}
+          placeholder={variant === "chat" ? "Send a message..." : "Assign a task or ask anything..."}
           disabled={disabled}
           rows={2}
-          className="max-h-60 min-h-14 resize-none border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
+          className="max-h-60 min-h-14 resize-none border-0 bg-transparent px-1 text-sm shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-0 md:text-sm dark:bg-transparent"
         />
-        <div className="mt-2 flex items-center gap-1">
+        <div className="mt-2 flex items-center gap-0.5 text-muted-foreground">
           <input
             ref={fileInput}
             type="file"
@@ -91,38 +94,41 @@ export function Composer({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full"
+            className="size-8 rounded-full"
             aria-label="Attach file"
             onClick={() => fileInput.current?.click()}
             disabled={disabled}
           >
             <Paperclip />
           </Button>
-          {variant === "chat" ? (
-            <>
-              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Tools" disabled title="Coming soon">
-                <Wrench />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Connectors" disabled title="Coming soon">
-                <Plug />
-              </Button>
-            </>
-          ) : (
-            <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground" disabled title="Coming soon">
-              <FolderOpen />
-              Project
+          {variant === "home" && (
+            <Button variant="ghost" size="sm" className="rounded-full font-normal" title="Coming soon">
+              <Folder />
+              Choose project
             </Button>
           )}
+          <Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Tools" title="Coming soon">
+            <Puzzle />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Connectors" title="Coming soon">
+            <Plug />
+          </Button>
           <div className="flex-1" />
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Voice input" disabled title="Coming soon">
+          <Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Voice input" title="Coming soon">
             <Mic />
           </Button>
           {isStreaming && !canSend ? (
-            <Button size="icon" className="rounded-full" onClick={onStop} aria-label="Stop">
-              <Square className="fill-current" />
+            <Button size="icon" className="size-8 rounded-full bg-red-500 text-white hover:bg-red-500/90" onClick={onStop} aria-label="Stop">
+              <Square className="size-3 fill-current" />
             </Button>
           ) : (
-            <Button size="icon" className="rounded-full" onClick={submit} disabled={!canSend} aria-label="Send">
+            <Button
+              size="icon"
+              className="size-8 rounded-full disabled:bg-surface disabled:text-muted-foreground disabled:opacity-100"
+              onClick={submit}
+              disabled={!canSend}
+              aria-label="Send"
+            >
               <ArrowUp />
             </Button>
           )}

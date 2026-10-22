@@ -24,28 +24,31 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --sidebar: oklch(0.985 0 0);
+  --surface: oklch(0.94 0 0);
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: oklch(0.985 0 0);
-  --card: #161616;
-  --card-foreground: oklch(0.985 0 0);
-  --popover: #161616;
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: #1f1f1f;
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: #1f1f1f;
-  --muted-foreground: oklch(0.708 0 0);
+  /* Galaxy's dark palette, sampled from magica.com/chat. */
+  --background: #141416;
+  --foreground: #f1f1f1;
+  --card: #1a1a1a;
+  --card-foreground: #f1f1f1;
+  --popover: #1a1a1a;
+  --popover-foreground: #f1f1f1;
+  --primary: #f1f1f1;
+  --primary-foreground: #141416;
+  --secondary: #222222;
+  --secondary-foreground: #f1f1f1;
+  --muted: #222222;
+  --muted-foreground: #9a9a9a;
   --accent: #222222;
-  --accent-foreground: oklch(0.985 0 0);
+  --accent-foreground: #f1f1f1;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: #262626;
+  --input: #2b2b2b;
+  --ring: #4a4a4a;
   --sidebar: #111111;
+  --surface: #2b2b2b;
 }
 
 @theme inline {
@@ -72,6 +75,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -80,6 +85,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    @apply font-sans;
   }
 }

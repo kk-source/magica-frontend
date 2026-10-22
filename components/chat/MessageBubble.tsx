@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, GitBranch, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Coins, Copy, GitFork, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isActiveRun, mediaFromTools, type Attachment, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
-import { cn } from "@/lib/utils";
+import { cn, formatCredits } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { ToolSteps } from "./ToolSteps";
 
@@ -21,10 +21,6 @@ type MessageBubbleProps = {
   status?: RunStatus | null;
   error?: string | null;
 };
-
-function formatCredits(credits: number) {
-  return credits >= 1_000_000 ? `${(credits / 1_000_000).toFixed(2)}M credits` : `${credits.toLocaleString()} credits`;
-}
 
 export function MessageBubble({ role, content, attachments = [], toolSteps, tools, credits, createdAt, status, error }: MessageBubbleProps) {
   const pending = isActiveRun(status);
@@ -43,13 +39,13 @@ export function MessageBubble({ role, content, attachments = [], toolSteps, tool
             )}
           </div>
         )}
-        <div className="max-w-[80%] rounded-3xl bg-[#222222] px-4 py-2.5 whitespace-pre-wrap">{content}</div>
+        <div className="max-w-[80%] rounded-[18px] bg-accent px-4 py-1.5 text-sm whitespace-pre-wrap">{content}</div>
       </div>
     );
   }
 
   return (
-    <div className={cn("min-w-0 leading-relaxed", role === "tool" && "text-sm text-muted-foreground")}>
+    <div className={cn("min-w-0 text-[15px] leading-relaxed", role === "tool" && "text-sm text-muted-foreground")}>
       <ToolSteps steps={toolSteps ?? []} />
       {content && <Markdown>{content}</Markdown>}
       <InlineMedia tools={tools ?? []} />
@@ -75,9 +71,9 @@ function InlineMedia({ tools }: { tools: ToolEvent[] }) {
       {media.map(({ kind, url }) =>
         kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={url} src={url} alt="Generated image" className="w-full max-w-sm rounded-lg object-cover" />
+          <img key={url} src={url} alt="Generated image" className="aspect-square w-full max-w-96 rounded-xl object-cover" />
         ) : (
-          <video key={url} src={url} controls className="w-full max-w-md rounded-lg" />
+          <video key={url} src={url} controls className="w-full max-w-md rounded-xl" />
         ),
       )}
     </div>
@@ -94,14 +90,20 @@ function MessageFooter({ content, credits, createdAt }: { content: string; credi
   };
 
   return (
-    <div className="mt-3 text-muted-foreground">
-      {!!credits && <p className="mb-1 text-xs">{formatCredits(credits)}</p>}
+    <div className="mt-2 text-muted-foreground">
+      {/* Text-only replies cost nothing; Galaxy hides the line then. */}
+      {credits != null && Math.round(credits) > 0 && (
+        <p className="mb-1 flex items-center gap-1 text-[11px]">
+          <Coins className="size-3" />
+          {formatCredits(credits)} credits
+        </p>
+      )}
       <div className="flex items-center gap-0.5">
         <Button variant="ghost" size="icon" className="size-7" onClick={copy} aria-label="Copy">
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
         </Button>
         <Button variant="ghost" size="icon" className="size-7" aria-label="Branch">
-          <GitBranch className="size-3.5" />
+          <GitFork className="size-3.5" />
         </Button>
         <Button variant="ghost" size="icon" className="size-7" aria-label="Good response">
           <ThumbsUp className="size-3.5" />
@@ -110,7 +112,7 @@ function MessageFooter({ content, credits, createdAt }: { content: string; credi
           <ThumbsDown className="size-3.5" />
         </Button>
         {createdAt && (
-          <span className="ml-2 text-xs">
+          <span className="ml-2 text-xs text-foreground">
             {new Date(createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </span>
         )}

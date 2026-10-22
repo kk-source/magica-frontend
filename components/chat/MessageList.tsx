@@ -24,7 +24,7 @@ export function MessageList({ messages, liveRun, awaitingRun, queued = [] }: Mes
 
   return (
     <ScrollArea className="min-h-0 flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-[932px] flex-col gap-10 px-8 py-6">
         {messages
           .filter((m) => m.role !== "system")
           .map((m) => (

@@ -5,7 +5,7 @@ const components: Components = {
   p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   a: ({ children, href }) => (
-    <a href={href} target="_blank" rel="noreferrer" className="text-sky-400 underline-offset-2 hover:underline">
+    <a href={href} target="_blank" rel="noreferrer" className="text-[#4b8dff] underline-offset-2 hover:underline">
       {children}
     </a>
   ),
@@ -21,12 +21,12 @@ const components: Components = {
       <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.9em]">{children}</code>
     ),
   pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-lg bg-[#161616] p-3 font-mono text-sm">{children}</pre>
+    <pre className="my-3 overflow-x-auto rounded-lg bg-card p-3 font-mono text-sm">{children}</pre>
   ),
   img: ({ src, alt }) =>
     typeof src === "string" ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={alt ?? ""} className="my-3 w-full max-w-sm rounded-lg" />
+      <img src={src} alt={alt ?? ""} className="my-3 aspect-square w-full max-w-96 rounded-xl object-cover" />
     ) : null,
 };
 
