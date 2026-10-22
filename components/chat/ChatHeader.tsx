@@ -2,6 +2,7 @@
 
 import { ChevronDown, FolderOpen, Monitor, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMe } from "@/lib/api/me";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function ChatHeader({ credits = 1000 }: { credits?: number }) {
+export function ChatHeader() {
+  const credits = useMe().data?.credits;
   return (
     <header className="flex h-14 shrink-0 items-center justify-between px-4">
       <DropdownMenu>
@@ -36,7 +38,7 @@ export function ChatHeader({ credits = 1000 }: { credits?: number }) {
         </Button>
         <span className="flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-sm">
           <Zap className="size-3.5 text-yellow-400" />
-          {credits.toLocaleString()}
+          {credits?.toLocaleString() ?? "—"}
         </span>
       </div>
     </header>
