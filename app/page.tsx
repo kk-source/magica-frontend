@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useClerk } from "@clerk/nextjs";
+import { SignInButton, useAuth, useClerk } from "@clerk/nextjs";
 import { useMutation } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { Composer } from "@/components/chat/Composer";
 import { TemplateGallery } from "@/components/home/TemplateGallery";
-import { createChat } from "@/lib/api/chats";
+import { Button } from "@/components/ui/button";
+import { useCreateChat } from "@/lib/api/chats";
 import { sendMessage } from "@/lib/api/messages";
 
 function greeting(hour: number) {
@@ -25,11 +26,13 @@ export default function HomePage() {
 
   useEffect(() => setHello(greeting(new Date().getHours())), []);
 
+  const createChat = useCreateChat();
+
+  // Create the chat, send the first turn, then open the chat with the run to poll.
   const start = useMutation({
     mutationFn: async (content: string) => {
-      const token = await getToken();
-      const chat = await createChat(token, { title: content.slice(0, 60) });
-      const { runId } = await sendMessage(token, chat.id, { content });
+      const chat = await createChat.mutateAsync({ title: content.slice(0, 60) });
+      const { runId } = await sendMessage(await getToken(), chat.id, { content });
       return { chatId: chat.id, runId };
     },
     onSuccess: ({ chatId, runId }) => router.push(`/chat/${chatId}?run=${runId}`),
@@ -48,6 +51,13 @@ export default function HomePage() {
         <p className="h-5 text-sm text-muted-foreground">{hello}</p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight">Your AI worker</h1>
         <p className="mt-2 text-muted-foreground">Work at the speed of thought</p>
+        {isSignedIn === false && (
+          <SignInButton mode="modal">
+            <Button variant="outline" className="mt-6 rounded-full">
+              Sign in to get started
+            </Button>
+          </SignInButton>
+        )}
         <Composer className="mt-8" onSubmit={submit} isStreaming={start.isPending} />
         {start.error && <p className="mt-2 text-sm text-destructive">{start.error.message}</p>}
         <div className="mt-10 w-full">
