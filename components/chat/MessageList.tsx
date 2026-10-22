@@ -11,14 +11,16 @@ type MessageListProps = {
   liveRun: Run | null;
   /** True from submit until the run finishes, so "Thinking…" shows before the first poll. */
   awaitingRun: boolean;
+  /** Messages typed while a run is going; sent when it finishes. */
+  queued?: string[];
 };
 
-export function MessageList({ messages, liveRun, awaitingRun }: MessageListProps) {
+export function MessageList({ messages, liveRun, awaitingRun, queued = [] }: MessageListProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, liveRun?.text, liveRun?.toolSteps.length]);
+  }, [messages.length, liveRun?.text, liveRun?.toolSteps.length, liveRun?.tools.length, liveRun?.status, queued.length]);
 
   return (
     <ScrollArea className="min-h-0 flex-1">
@@ -47,6 +49,11 @@ export function MessageList({ messages, liveRun, awaitingRun }: MessageListProps
             error={liveRun?.error}
           />
         )}
+        {queued.map((text, i) => (
+          <div key={i} className="opacity-60">
+            <MessageBubble role="user" content={text} />
+          </div>
+        ))}
         <div ref={endRef} />
       </div>
     </ScrollArea>

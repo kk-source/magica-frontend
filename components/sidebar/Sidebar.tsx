@@ -16,26 +16,28 @@ import {
   Search,
   Settings,
   Sparkles,
+  Trash2,
   Wrench,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useChats, useCreateChat } from "@/lib/api/chats";
+import { useChats, useCreateChat, useDeleteChat } from "@/lib/api/chats";
 import { useMe } from "@/lib/api/me";
 import { useUiStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 
-const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
+// Only "New task" is built; the rest mirror Galaxy's nav but are shown disabled.
+const NAV_ITEMS: { label: string; href: string; icon: LucideIcon; soon?: boolean }[] = [
   { label: "New task", href: "/", icon: Plus },
-  { label: "Tasks", href: "/tasks", icon: LayoutList },
-  { label: "Projects", href: "/projects", icon: FolderOpen },
-  { label: "Library", href: "/library", icon: BookOpen },
-  { label: "Tools", href: "/tools", icon: Wrench },
-  { label: "API/MCP", href: "/api-mcp", icon: Code },
-  { label: "Help", href: "/help", icon: HelpCircle },
+  { label: "Tasks", href: "/tasks", icon: LayoutList, soon: true },
+  { label: "Projects", href: "/projects", icon: FolderOpen, soon: true },
+  { label: "Library", href: "/library", icon: BookOpen, soon: true },
+  { label: "Tools", href: "/tools", icon: Wrench, soon: true },
+  { label: "API/MCP", href: "/api-mcp", icon: Code, soon: true },
+  { label: "Help", href: "/help", icon: HelpCircle, soon: true },
 ];
 
 export function Sidebar() {
@@ -47,6 +49,13 @@ export function Sidebar() {
   const { isSignedIn } = useAuth();
   const { data: chats = [], isLoading } = useChats();
   const createChat = useCreateChat();
+
+  const deleteChat = useDeleteChat();
+  const removeChat = (chatId: string) =>
+    deleteChat.mutate(chatId, {
+      // Leave a chat that no longer exists.
+      onSuccess: () => pathname === `/chat/${chatId}` && router.push("/"),
+    });
 
   const newChat = () =>
     createChat.mutate({}, { onSuccess: (chat) => router.push(`/chat/${chat.id}`) });
@@ -66,7 +75,7 @@ export function Sidebar() {
           </Link>
         )}
         {!collapsed && (
-          <Button variant="ghost" size="icon" aria-label="Search">
+          <Button variant="ghost" size="icon" aria-label="Search" disabled title="Coming soon">
             <Search />
           </Button>
         )}
@@ -76,11 +85,25 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-0.5 px-2">
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => (
-          <SidebarLink key={label} href={href} label={label} collapsed={collapsed} active={pathname === href}>
-            <Icon className="size-4 shrink-0" />
-          </SidebarLink>
-        ))}
+        {NAV_ITEMS.map(({ label, href, icon: Icon, soon }) =>
+          soon ? (
+            <span
+              key={label}
+              title="Coming soon"
+              className={cn(
+                "flex h-9 cursor-default items-center gap-3 rounded-md px-2.5 text-white/35",
+                collapsed && "justify-center px-0",
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              {!collapsed && <span className="truncate">{label}</span>}
+            </span>
+          ) : (
+            <SidebarLink key={label} href={href} label={label} collapsed={collapsed} active={pathname === href}>
+              <Icon className="size-4 shrink-0" />
+            </SidebarLink>
+          ),
+        )}
       </nav>
 
       {!collapsed && (
@@ -107,15 +130,24 @@ export function Sidebar() {
               </p>
             ) : (
               chats.map((chat) => (
-                <SidebarLink
-                  key={chat.id}
-                  href={`/chat/${chat.id}`}
-                  label={chat.title}
-                  collapsed={false}
-                  active={pathname === `/chat/${chat.id}`}
-                >
-                  <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
-                </SidebarLink>
+                <div key={chat.id} className="group relative">
+                  <SidebarLink
+                    href={`/chat/${chat.id}`}
+                    label={chat.title}
+                    collapsed={false}
+                    active={pathname === `/chat/${chat.id}`}
+                  >
+                    <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+                  </SidebarLink>
+                  <button
+                    onClick={() => removeChat(chat.id)}
+                    disabled={deleteChat.isPending}
+                    aria-label={`Delete ${chat.title}`}
+                    className="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-white/10 hover:text-white group-hover:block"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </ScrollArea>
@@ -130,13 +162,13 @@ export function Sidebar() {
               <Zap className="size-4 text-yellow-400" />
               {credits?.toLocaleString() ?? "—"} credits
             </span>
-            <Button size="sm" variant="secondary" className="h-7 text-xs">
+            <Button size="sm" variant="secondary" className="h-7 text-xs" disabled title="Coming soon">
               Add Credits
             </Button>
           </div>
         )}
         <div className={cn("flex items-center gap-1", collapsed ? "flex-col" : "justify-between")}>
-          <Button variant="ghost" size="icon" aria-label="Settings">
+          <Button variant="ghost" size="icon" aria-label="Settings" disabled title="Coming soon">
             <Settings />
           </Button>
           <ThemeToggle />

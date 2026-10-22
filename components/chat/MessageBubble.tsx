@@ -81,7 +81,7 @@ function MessageFooter({ content, credits, createdAt }: { content: string; credi
 
   return (
     <div className="mt-3 text-muted-foreground">
-      {credits != null && <p className="mb-1 text-xs">{formatCredits(credits)}</p>}
+      {!!credits && <p className="mb-1 text-xs">{formatCredits(credits)}</p>}
       <div className="flex items-center gap-0.5">
         <Button variant="ghost" size="icon" className="size-7" onClick={copy} aria-label="Copy">
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

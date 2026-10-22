@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth, useClerk } from "@clerk/nextjs";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { Composer } from "@/components/chat/Composer";
 import { TemplateGallery } from "@/components/home/TemplateGallery";
 import { Button } from "@/components/ui/button";
-import { chatKeys, deleteChat, useCreateChat } from "@/lib/api/chats";
-import { sendMessage } from "@/lib/api/messages";
+import { useCreateChat } from "@/lib/api/chats";
+import { useChatStore } from "@/lib/stores/chat.store";
 
 function greeting(hour: number) {
   if (hour < 12) return "Good morning";
@@ -20,30 +20,22 @@ function greeting(hour: number) {
 
 export default function HomePage() {
   const router = useRouter();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
   const [hello, setHello] = useState("");
 
   useEffect(() => setHello(greeting(new Date().getHours())), []);
 
-  const queryClient = useQueryClient();
   const createChat = useCreateChat();
+  const setOutbox = useChatStore((s) => s.setOutbox);
 
-  // Create the chat, send the first turn, then open the chat with the run to poll.
+  // Create the chat and open it; the chat page sends the first turn so it renders immediately.
   const start = useMutation({
-    mutationFn: async (content: string) => {
-      const chat = await createChat.mutateAsync({ title: content.slice(0, 60) });
-      try {
-        const { runId } = await sendMessage(await getToken(), chat.id, { content });
-        return { chatId: chat.id, runId };
-      } catch (err) {
-        // Don't leave an empty chat in the sidebar when the first turn fails.
-        await deleteChat(await getToken(), chat.id).catch(() => {});
-        void queryClient.invalidateQueries({ queryKey: chatKeys.all });
-        throw err;
-      }
+    mutationFn: (content: string) => createChat.mutateAsync({ title: content.slice(0, 60) }),
+    onSuccess: (chat, content) => {
+      setOutbox({ chatId: chat.id, content });
+      router.push(`/chat/${chat.id}`);
     },
-    onSuccess: ({ chatId, runId }) => router.push(`/chat/${chatId}?run=${runId}`),
   });
 
   const submit = (text: string) => {

@@ -30,10 +30,10 @@ export function ChatHeader() {
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Computer">
+        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Computer" disabled title="Coming soon">
           <Monitor />
         </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Files">
+        <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Files" disabled title="Coming soon">
           <FolderOpen />
         </Button>
         <span className="flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-sm">

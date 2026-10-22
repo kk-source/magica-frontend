@@ -28,7 +28,8 @@ export function Composer({
 }: ComposerProps) {
   const value = useUiStore((s) => s.composerValue);
   const setValue = useUiStore((s) => s.setComposerValue);
-  const canSend = value.trim().length > 0 && !isStreaming && !disabled;
+  // Typing stays enabled during a run; ChatView queues what's sent until the run ends.
+  const canSend = value.trim().length > 0 && !disabled;
 
   const submit = () => {
     if (!canSend) return;
@@ -57,7 +58,7 @@ export function Composer({
             }
           }}
           placeholder={variant === "chat" ? "Send a message…" : "Assign a task or ask anything…"}
-          disabled={isStreaming || disabled}
+          disabled={disabled}
           rows={2}
           className="max-h-60 min-h-14 resize-none border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
@@ -67,24 +68,24 @@ export function Composer({
           </Button>
           {variant === "chat" ? (
             <>
-              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Tools">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Tools" disabled title="Coming soon">
                 <Wrench />
               </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Connectors">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Connectors" disabled title="Coming soon">
                 <Plug />
               </Button>
             </>
           ) : (
-            <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground">
+            <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground" disabled title="Coming soon">
               <FolderOpen />
               Project
             </Button>
           )}
           <div className="flex-1" />
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Voice input">
+          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Voice input" disabled title="Coming soon">
             <Mic />
           </Button>
-          {isStreaming ? (
+          {isStreaming && !canSend ? (
             <Button size="icon" className="rounded-full" onClick={onStop} aria-label="Stop">
               <Square className="fill-current" />
             </Button>
