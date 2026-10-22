@@ -2,19 +2,23 @@
 
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useChatStore } from "@/lib/stores/chat.store";
+import type { Message, Run } from "@/lib/api/schemas";
 import { MessageBubble } from "./MessageBubble";
 
-export function MessageList() {
-  const messages = useChatStore((s) => s.messages);
-  const isStreaming = useChatStore((s) => s.isStreaming);
-  const streamingText = useChatStore((s) => s.streamingText);
-  const streamingSteps = useChatStore((s) => s.streamingSteps);
+type MessageListProps = {
+  messages: Message[];
+  /** Snapshot of the in-flight run, rendered as a streaming assistant bubble. */
+  liveRun: Run | null;
+  /** True from submit until the run finishes, so "Thinking…" shows before the first poll. */
+  awaitingRun: boolean;
+};
+
+export function MessageList({ messages, liveRun, awaitingRun }: MessageListProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, streamingText, streamingSteps.length]);
+  }, [messages.length, liveRun?.text, liveRun?.toolSteps.length]);
 
   return (
     <ScrollArea className="min-h-0 flex-1">
@@ -27,13 +31,21 @@ export function MessageList() {
               role={m.role}
               content={m.content}
               toolSteps={m.toolSteps}
+              tools={m.tools}
               credits={m.credits}
               createdAt={m.createdAt}
-              pending={m.status === "PENDING" || m.status === "STREAMING"}
+              status={m.status}
             />
           ))}
-        {isStreaming && (
-          <MessageBubble role="assistant" content={streamingText} toolSteps={streamingSteps} pending />
+        {awaitingRun && (
+          <MessageBubble
+            role="assistant"
+            content={liveRun?.text ?? ""}
+            toolSteps={liveRun?.toolSteps}
+            tools={liveRun?.tools}
+            status={liveRun?.status ?? "PENDING"}
+            error={liveRun?.error}
+          />
         )}
         <div ref={endRef} />
       </div>

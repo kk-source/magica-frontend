@@ -1,35 +1,30 @@
 import { create } from "zustand";
-import type { Message, ToolStep } from "@/lib/api/schemas";
+import type { Message, Run } from "@/lib/api/schemas";
 
 type ChatState = {
   activeChatId: string | null;
-  messages: Message[];
+  /** User turns sent this session but not yet in the fetched history. */
+  pendingMessages: Message[];
   activeRunId: string | null;
-  isStreaming: boolean;
-  streamingText: string;
-  streamingSteps: ToolStep[];
+  /** Latest polled snapshot of the active run. */
+  liveRun: Run | null;
   setActiveChat: (chatId: string | null) => void;
-  setMessages: (messages: Message[]) => void;
-  addMessage: (message: Message) => void;
+  addPendingMessage: (message: Message) => void;
+  clearPendingMessages: () => void;
   startRun: (runId: string) => void;
-  setStreamingText: (text: string) => void;
-  setStreamingSteps: (steps: ToolStep[]) => void;
+  setLiveRun: (run: Run) => void;
   endRun: () => void;
 };
 
 export const useChatStore = create<ChatState>((set) => ({
   activeChatId: null,
-  messages: [],
+  pendingMessages: [],
   activeRunId: null,
-  isStreaming: false,
-  streamingText: "",
-  streamingSteps: [],
-  setActiveChat: (chatId) =>
-    set({ activeChatId: chatId, messages: [], activeRunId: null, isStreaming: false, streamingText: "", streamingSteps: [] }),
-  setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
-  startRun: (runId) => set({ activeRunId: runId, isStreaming: true, streamingText: "", streamingSteps: [] }),
-  setStreamingText: (streamingText) => set({ streamingText }),
-  setStreamingSteps: (streamingSteps) => set({ streamingSteps }),
-  endRun: () => set({ activeRunId: null, isStreaming: false, streamingText: "", streamingSteps: [] }),
+  liveRun: null,
+  setActiveChat: (chatId) => set({ activeChatId: chatId, pendingMessages: [], activeRunId: null, liveRun: null }),
+  addPendingMessage: (message) => set((s) => ({ pendingMessages: [...s.pendingMessages, message] })),
+  clearPendingMessages: () => set({ pendingMessages: [] }),
+  startRun: (runId) => set({ activeRunId: runId, liveRun: null }),
+  setLiveRun: (liveRun) => set({ liveRun }),
+  endRun: () => set({ activeRunId: null, liveRun: null }),
 }));

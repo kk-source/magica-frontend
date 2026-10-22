@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { usePathname, useRouter } from "next/navigation";
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs";
 import {
   BookOpen,
@@ -23,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { listChats } from "@/lib/api/chats";
+import { useChats, useCreateChat } from "@/lib/api/chats";
 import { useUiStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -42,13 +41,13 @@ export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const pathname = usePathname();
-  const { isSignedIn, getToken } = useAuth();
+  const router = useRouter();
+  const { isSignedIn } = useAuth();
+  const { data: chats = [], isLoading } = useChats();
+  const createChat = useCreateChat();
 
-  const { data: chats = [] } = useQuery({
-    queryKey: ["chats"],
-    queryFn: async () => listChats(await getToken()),
-    enabled: Boolean(isSignedIn),
-  });
+  const newChat = () =>
+    createChat.mutate({}, { onSuccess: (chat) => router.push(`/chat/${chat.id}`) });
 
   return (
     <aside
@@ -84,10 +83,26 @@ export function Sidebar() {
 
       {!collapsed && (
         <>
-          <div className="mt-6 px-4 pb-2 text-xs font-medium text-muted-foreground">Recent tasks</div>
+          <div className="mt-6 flex items-center justify-between pr-2 pl-4 pb-1 text-xs font-medium text-muted-foreground">
+            Recent tasks
+            {isSignedIn && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={newChat}
+                disabled={createChat.isPending}
+                aria-label="New chat"
+              >
+                <Plus className="size-3.5" />
+              </Button>
+            )}
+          </div>
           <ScrollArea className="min-h-0 flex-1 px-2">
             {chats.length === 0 ? (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">No tasks yet</p>
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                {!isSignedIn ? "Sign in to see your tasks" : isLoading ? "Loading…" : "No tasks yet"}
+              </p>
             ) : (
               chats.map((chat) => (
                 <SidebarLink

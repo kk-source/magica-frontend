@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+/** Backend origin (separate deployment). Empty string means same origin. */
+const API_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
@@ -35,8 +36,8 @@ export async function apiFetch<S extends z.ZodType>(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new ApiError(res.status, text || res.statusText);
+    const data = (await res.json().catch(() => null)) as { error?: unknown } | null;
+    throw new ApiError(res.status, typeof data?.error === "string" ? data.error : res.statusText);
   }
 
   const json: unknown = res.status === 204 ? null : await res.json();

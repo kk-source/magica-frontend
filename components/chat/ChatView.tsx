@@ -1,67 +1,99 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getChat } from "@/lib/api/chats";
-import { sendMessage } from "@/lib/api/messages";
-import { cancelRun } from "@/lib/api/runs";
-import { useRunStream } from "@/lib/hooks/useRunStream";
+import { useChat } from "@/lib/api/chats";
+import { useSendMessage } from "@/lib/api/messages";
+import { useCancelRun, useRunStatus } from "@/lib/api/runs";
+import { isActiveRun } from "@/lib/api/schemas";
 import { useChatStore } from "@/lib/stores/chat.store";
 import { ChatHeader } from "./ChatHeader";
 import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 
 export function ChatView({ chatId }: { chatId: string }) {
-  const { getToken } = useAuth();
   const initialRunId = useSearchParams().get("run");
-  const { activeRunId, isStreaming, messages, setActiveChat, setMessages, addMessage, startRun, endRun } = useChatStore();
+  const {
+    activeRunId,
+    liveRun,
+    pendingMessages,
+    setActiveChat,
+    addPendingMessage,
+    clearPendingMessages,
+    startRun,
+    setLiveRun,
+    endRun,
+  } = useChatStore();
 
   useEffect(() => {
     setActiveChat(chatId);
-    if (initialRunId) startRun(initialRunId);
+    if (!initialRunId) return;
+    startRun(initialRunId);
+    // Drop ?run= so a refresh doesn't replay a finished run.
+    window.history.replaceState(null, "", `/chat/${chatId}`);
   }, [chatId, initialRunId, setActiveChat, startRun]);
 
-  const { data: chat } = useQuery({
-    queryKey: ["chat", chatId],
-    queryFn: async () => getChat(await getToken(), chatId),
-  });
+  const { data: chat, error: chatError, refetch } = useChat(chatId);
+  const history = useMemo(() => chat?.messages ?? [], [chat]);
+
+  // Resume polling if the page loads while a reply is still being generated.
+  useEffect(() => {
+    if (activeRunId) return;
+    const last = history.at(-1);
+    if (last?.role === "assistant" && last.runId && isActiveRun(last.status)) startRun(last.runId);
+  }, [history, activeRunId, startRun]);
+
+  const { data: run } = useRunStatus(chatId, activeRunId);
 
   useEffect(() => {
-    if (chat) setMessages(chat.messages);
-  }, [chat, setMessages]);
+    if (!run || run.id !== activeRunId) return;
+    setLiveRun(run);
+    if (isActiveRun(run.status)) return;
+    // Terminal: swap the live bubble for the persisted reply.
+    void refetch().then(() => {
+      endRun();
+      clearPendingMessages();
+    });
+  }, [run, activeRunId, setLiveRun, refetch, endRun, clearPendingMessages]);
 
-  useRunStream(chatId, activeRunId);
+  const send = useSendMessage(chatId);
+  const cancel = useCancelRun(chatId);
 
-  const send = useMutation({
-    mutationFn: async (content: string) => sendMessage(await getToken(), chatId, { content }),
-    onSuccess: ({ message, runId }) => {
-      addMessage(message);
-      startRun(runId);
-    },
-  });
+  const submit = (content: string) =>
+    send.mutate(
+      { content },
+      {
+        onSuccess: ({ message, runId }) => {
+          addPendingMessage(message);
+          startRun(runId);
+        },
+      },
+    );
 
-  const stop = async () => {
+  const stop = () => {
     if (!activeRunId) return;
-    await cancelRun(await getToken(), chatId, activeRunId);
-    endRun();
+    cancel.mutate(activeRunId, { onSettled: () => void refetch().then(endRun) });
   };
 
-  const suggestion = messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
+  const messages = useMemo(() => {
+    const ids = new Set(history.map((m) => m.id));
+    return [...history, ...pendingMessages.filter((m) => !ids.has(m.id))].filter(
+      // The live bubble renders the in-flight reply.
+      (m) => !(activeRunId && m.role === "assistant" && m.runId === activeRunId),
+    );
+  }, [history, pendingMessages, activeRunId]);
+
+  const isRunning = Boolean(activeRunId) || send.isPending;
+  const suggestion = isRunning ? null : messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
+  const error = chatError ?? send.error ?? cancel.error;
 
   return (
     <div className="flex h-full flex-col">
       <ChatHeader />
-      <MessageList />
+      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} />
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        <Composer
-          onSubmit={(text) => send.mutate(text)}
-          onStop={stop}
-          variant="chat"
-          suggestion={suggestion}
-          isStreaming={isStreaming || send.isPending}
-        />
+        {error && <p className="mb-2 text-sm text-destructive">{error.message}</p>}
+        <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />
       </div>
     </div>
   );

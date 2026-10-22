@@ -29,18 +29,16 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
       </button>
       {open && (
         <ul className="mt-2 divide-y divide-white/10 rounded-lg border border-white/10 text-sm">
-          {steps.map((step) => (
-            <li key={step.id} className="flex items-center gap-2 px-3 py-2">
+          {steps.map((step, i) => (
+            <li key={i} className="flex items-center gap-2 px-3 py-2">
               {step.status === "running" && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
               {step.status === "done" && <CheckCircle2 className="size-4 text-emerald-400" />}
-              {step.status === "error" && <XCircle className="size-4 text-destructive" />}
+              {step.status === "failed" && <XCircle className="size-4 text-destructive" />}
               <span className="min-w-0 flex-1 truncate">
                 {step.label}
-                {step.argument && <strong className="ml-1 font-semibold text-foreground">{step.argument}</strong>}
+                {step.boldArg && <strong className="ml-1 font-semibold text-foreground">{step.boldArg}</strong>}
               </span>
-              {step.elapsedMs != null && (
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatElapsed(step.elapsedMs)}</span>
-              )}
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatElapsed(step.elapsedMs)}</span>
             </li>
           ))}
         </ul>
