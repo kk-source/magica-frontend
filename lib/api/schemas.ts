@@ -14,6 +14,11 @@ export type Chat = z.infer<typeof ChatSchema>;
 export const ToolStepSchema = z.object({
   id: z.string(),
   label: z.string(),
+  /** Highlighted argument shown in bold after the label, e.g. a skill or file name. */
+  argument: z.string().nullish(),
+  elapsedMs: z.number().nullish(),
+  /** Image produced by the tool; rendered inline in the reply. */
+  imageUrl: z.string().nullish(),
   status: z.enum(["running", "done", "error"]).default("done"),
 });
 export type ToolStep = z.infer<typeof ToolStepSchema>;

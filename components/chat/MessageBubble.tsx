@@ -34,6 +34,7 @@ export function MessageBubble({ role, content, toolSteps, credits, createdAt, pe
     <div className={cn("min-w-0 leading-relaxed", role === "tool" && "text-sm text-muted-foreground")}>
       <ToolSteps steps={toolSteps ?? []} />
       {content && <Markdown>{content}</Markdown>}
+      <InlineImages steps={toolSteps ?? []} />
       {pending && (
         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
@@ -41,6 +42,20 @@ export function MessageBubble({ role, content, toolSteps, credits, createdAt, pe
         </span>
       )}
       {!pending && role === "assistant" && <MessageFooter content={content} credits={credits} createdAt={createdAt} />}
+    </div>
+  );
+}
+
+function InlineImages({ steps }: { steps: ToolStep[] }) {
+  const urls = steps.flatMap((s) => (s.imageUrl ? [s.imageUrl] : []));
+  if (urls.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-3">
+      {urls.map((url) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={url} src={url} alt="Generated image" className="aspect-square w-full max-w-sm rounded-lg object-cover" />
+      ))}
     </div>
   );
 }

@@ -4,6 +4,10 @@ import { useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, XCircle } from "lucide-react";
 import type { ToolStep } from "@/lib/api/schemas";
 
+function formatElapsed(ms: number) {
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
 function summarize(steps: ToolStep[]) {
   const [first, ...rest] = steps;
   if (rest.length === 0) return first.label;
@@ -30,7 +34,13 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
               {step.status === "running" && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
               {step.status === "done" && <CheckCircle2 className="size-4 text-emerald-400" />}
               {step.status === "error" && <XCircle className="size-4 text-destructive" />}
-              {step.label}
+              <span className="min-w-0 flex-1 truncate">
+                {step.label}
+                {step.argument && <strong className="ml-1 font-semibold text-foreground">{step.argument}</strong>}
+              </span>
+              {step.elapsedMs != null && (
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatElapsed(step.elapsedMs)}</span>
+              )}
             </li>
           ))}
         </ul>
