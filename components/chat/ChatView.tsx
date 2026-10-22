@@ -23,7 +23,10 @@ export function ChatView({ chatId }: { chatId: string }) {
     pendingMessages,
     setActiveChat,
     addPendingMessage,
-    clearPendingMessages,
+    replacePendingMessage,
+    removePendingMessage,
+    outbox,
+    setOutbox,
     startRun,
     setLiveRun,
     endRun,
@@ -68,29 +71,51 @@ export function ChatView({ chatId }: { chatId: string }) {
     }
     if (isActiveRun(run.status)) return;
     if (run.status === "FAILED") setRunError(run.error ?? "Something went wrong.");
-    // Terminal: swap the live bubble for the persisted reply.
+    // Terminal: swap the live bubble for the persisted reply. Pending turns already in history dedupe away.
     void queryClient.invalidateQueries({ queryKey: meKey });
-    void refetch().then(() => {
-      endRun();
-      clearPendingMessages();
-    });
-  }, [run, activeRunId, setLiveRun, refetch, endRun, clearPendingMessages, queryClient]);
+    void refetch().then(endRun);
+  }, [run, activeRunId, setLiveRun, refetch, endRun, queryClient]);
 
   const send = useSendMessage(chatId);
   const cancel = useCancelRun(chatId);
 
-  const submit = (content: string) => {
+  // Show the turn immediately; swap in the server's copy once the POST returns.
+  const dispatch = (content: string) => {
     setRunError(null);
+    const tempId = `temp_${crypto.randomUUID()}`;
+    addPendingMessage({ id: tempId, chatId, role: "user", content, attachments: [], tools: [], createdAt: new Date().toISOString() });
     send.mutate(
       { content },
       {
         onSuccess: ({ message, runId }) => {
-          addPendingMessage(message);
+          replacePendingMessage(tempId, message);
           startRun(runId);
         },
+        onError: () => removePendingMessage(tempId),
       },
     );
   };
+
+  const [queued, setQueued] = useState<string[]>([]);
+  const isRunning = Boolean(activeRunId) || send.isPending;
+  const submit = (content: string) => (isRunning ? setQueued((q) => [...q, content]) : dispatch(content));
+
+  // Send queued turns one at a time once the current run finishes.
+  useEffect(() => {
+    if (isRunning || queued.length === 0) return;
+    const [next, ...rest] = queued;
+    setQueued(rest);
+    dispatch(next!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning, queued]);
+
+  // Hand-off from the home page: send its first message here so it renders instantly.
+  useEffect(() => {
+    if (outbox?.chatId !== chatId) return;
+    setOutbox(null);
+    dispatch(outbox.content);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outbox, chatId]);
 
   const stop = () => {
     if (!activeRunId) return;
@@ -105,14 +130,13 @@ export function ChatView({ chatId }: { chatId: string }) {
     );
   }, [history, pendingMessages, activeRunId]);
 
-  const isRunning = Boolean(activeRunId) || send.isPending;
   const suggestion = isRunning ? null : messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
   const error = chatError?.message ?? send.error?.message ?? cancel.error?.message ?? runError;
 
   return (
     <div className="flex h-full flex-col">
       <ChatHeader />
-      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} />
+      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued} />
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
         <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />

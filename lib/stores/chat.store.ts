@@ -10,6 +10,11 @@ type ChatState = {
   liveRun: Run | null;
   setActiveChat: (chatId: string | null) => void;
   addPendingMessage: (message: Message) => void;
+  replacePendingMessage: (id: string, message: Message) => void;
+  removePendingMessage: (id: string) => void;
+  /** First message typed on the home page, sent by the chat page once it opens. */
+  outbox: { chatId: string; content: string } | null;
+  setOutbox: (outbox: { chatId: string; content: string } | null) => void;
   clearPendingMessages: () => void;
   startRun: (runId: string) => void;
   setLiveRun: (run: Run) => void;
@@ -23,6 +28,11 @@ export const useChatStore = create<ChatState>((set) => ({
   liveRun: null,
   setActiveChat: (chatId) => set({ activeChatId: chatId, pendingMessages: [], activeRunId: null, liveRun: null }),
   addPendingMessage: (message) => set((s) => ({ pendingMessages: [...s.pendingMessages, message] })),
+  replacePendingMessage: (id, message) =>
+    set((s) => ({ pendingMessages: s.pendingMessages.map((m) => (m.id === id ? message : m)) })),
+  removePendingMessage: (id) => set((s) => ({ pendingMessages: s.pendingMessages.filter((m) => m.id !== id) })),
+  outbox: null,
+  setOutbox: (outbox) => set({ outbox }),
   clearPendingMessages: () => set({ pendingMessages: [] }),
   startRun: (runId) => set({ activeRunId: runId, liveRun: null }),
   setLiveRun: (liveRun) => set({ liveRun }),

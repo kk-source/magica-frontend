@@ -53,3 +53,12 @@ export function useCreateChat() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
   });
 }
+
+export function useDeleteChat() {
+  const token = useApiToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (chatId: string) => deleteChat(await token(), chatId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+  });
+}
