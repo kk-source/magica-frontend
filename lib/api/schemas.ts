@@ -37,6 +37,7 @@ export const ToolStepSchema = z.object({
 export type ToolStep = z.infer<typeof ToolStepSchema>;
 
 export const AttachmentSchema = z.object({ url: z.string(), mimeType: z.string(), fileName: z.string() });
+export type Attachment = z.infer<typeof AttachmentSchema>;
 
 export const MessageSchema = z.object({
   id: z.string(),

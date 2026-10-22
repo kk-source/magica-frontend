@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, GitBranch, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isActiveRun, mediaFromTools, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
+import { isActiveRun, mediaFromTools, type Attachment, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
 import { cn } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { ToolSteps } from "./ToolSteps";
@@ -11,6 +11,8 @@ import { ToolSteps } from "./ToolSteps";
 type MessageBubbleProps = {
   role: Message["role"];
   content: string;
+  /** Files the user uploaded with this turn. */
+  attachments?: Attachment[];
   toolSteps?: ToolStep[] | null;
   /** Raw tool events; produced images and videos are rendered inline. */
   tools?: ToolEvent[] | null;
@@ -24,11 +26,23 @@ function formatCredits(credits: number) {
   return credits >= 1_000_000 ? `${(credits / 1_000_000).toFixed(2)}M credits` : `${credits.toLocaleString()} credits`;
 }
 
-export function MessageBubble({ role, content, toolSteps, tools, credits, createdAt, status, error }: MessageBubbleProps) {
+export function MessageBubble({ role, content, attachments = [], toolSteps, tools, credits, createdAt, status, error }: MessageBubbleProps) {
   const pending = isActiveRun(status);
   if (role === "user") {
     return (
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-2">
+        {attachments.length > 0 && (
+          <div className="flex max-w-[80%] flex-wrap justify-end gap-2">
+            {attachments.map((a) =>
+              a.mimeType.startsWith("video/") ? (
+                <video key={a.url} src={a.url} controls className="w-full max-w-xs rounded-lg" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={a.url} src={a.url} alt={a.fileName} className="max-h-48 max-w-48 rounded-lg object-cover" />
+              ),
+            )}
+          </div>
+        )}
         <div className="max-w-[80%] rounded-3xl bg-[#222222] px-4 py-2.5 whitespace-pre-wrap">{content}</div>
       </div>
     );

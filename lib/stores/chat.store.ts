@@ -1,5 +1,8 @@
 import { create } from "zustand";
+import type { AttachmentInput } from "@/lib/api/messages";
 import type { Message, Run } from "@/lib/api/schemas";
+
+type Outbox = { chatId: string; content: string; attachments: AttachmentInput[] };
 
 type ChatState = {
   activeChatId: string | null;
@@ -13,8 +16,8 @@ type ChatState = {
   replacePendingMessage: (id: string, message: Message) => void;
   removePendingMessage: (id: string) => void;
   /** First message typed on the home page, sent by the chat page once it opens. */
-  outbox: { chatId: string; content: string } | null;
-  setOutbox: (outbox: { chatId: string; content: string } | null) => void;
+  outbox: Outbox | null;
+  setOutbox: (outbox: Outbox | null) => void;
   clearPendingMessages: () => void;
   startRun: (runId: string) => void;
   setLiveRun: (run: Run) => void;
