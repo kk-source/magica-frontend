@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useChat } from "@/lib/api/chats";
 import { useSendMessage } from "@/lib/api/messages";
@@ -10,6 +10,8 @@ import { useChatStore } from "@/lib/stores/chat.store";
 import { ChatHeader } from "./ChatHeader";
 import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
+
+const PENDING_TIMEOUT_MS = 90_000;
 
 export function ChatView({ chatId }: { chatId: string }) {
   const initialRunId = useSearchParams().get("run");
@@ -25,13 +27,15 @@ export function ChatView({ chatId }: { chatId: string }) {
     endRun,
   } = useChatStore();
 
+  useEffect(() => setActiveChat(chatId), [chatId, setActiveChat]);
+
+  // Separate from the reset above: dropping ?run= re-runs this effect, and must not clear the run.
   useEffect(() => {
-    setActiveChat(chatId);
     if (!initialRunId) return;
     startRun(initialRunId);
     // Drop ?run= so a refresh doesn't replay a finished run.
     window.history.replaceState(null, "", `/chat/${chatId}`);
-  }, [chatId, initialRunId, setActiveChat, startRun]);
+  }, [chatId, initialRunId, startRun]);
 
   const { data: chat, error: chatError, refetch } = useChat(chatId);
   const history = useMemo(() => chat?.messages ?? [], [chat]);
@@ -44,11 +48,23 @@ export function ChatView({ chatId }: { chatId: string }) {
   }, [history, activeRunId, startRun]);
 
   const { data: run } = useRunStatus(chatId, activeRunId);
+  const [runError, setRunError] = useState<string | null>(null);
+  const runStartedAt = useRef(0);
+  useEffect(() => {
+    if (activeRunId) runStartedAt.current = Date.now();
+  }, [activeRunId]);
 
   useEffect(() => {
     if (!run || run.id !== activeRunId) return;
     setLiveRun(run);
+    // A run that never starts would otherwise spin forever.
+    if (run.status === "PENDING" && Date.now() - runStartedAt.current > PENDING_TIMEOUT_MS) {
+      setRunError("The agent didn't start. Please try again.");
+      endRun();
+      return;
+    }
     if (isActiveRun(run.status)) return;
+    if (run.status === "FAILED") setRunError(run.error ?? "Something went wrong.");
     // Terminal: swap the live bubble for the persisted reply.
     void refetch().then(() => {
       endRun();
@@ -59,7 +75,8 @@ export function ChatView({ chatId }: { chatId: string }) {
   const send = useSendMessage(chatId);
   const cancel = useCancelRun(chatId);
 
-  const submit = (content: string) =>
+  const submit = (content: string) => {
+    setRunError(null);
     send.mutate(
       { content },
       {
@@ -69,6 +86,7 @@ export function ChatView({ chatId }: { chatId: string }) {
         },
       },
     );
+  };
 
   const stop = () => {
     if (!activeRunId) return;
@@ -85,14 +103,14 @@ export function ChatView({ chatId }: { chatId: string }) {
 
   const isRunning = Boolean(activeRunId) || send.isPending;
   const suggestion = isRunning ? null : messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
-  const error = chatError ?? send.error ?? cancel.error;
+  const error = chatError?.message ?? send.error?.message ?? cancel.error?.message ?? runError;
 
   return (
     <div className="flex h-full flex-col">
       <ChatHeader />
       <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} />
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        {error && <p className="mb-2 text-sm text-destructive">{error.message}</p>}
+        {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
         <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />
       </div>
     </div>

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth, useClerk } from "@clerk/nextjs";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { Composer } from "@/components/chat/Composer";
 import { TemplateGallery } from "@/components/home/TemplateGallery";
 import { Button } from "@/components/ui/button";
-import { useCreateChat } from "@/lib/api/chats";
+import { chatKeys, deleteChat, useCreateChat } from "@/lib/api/chats";
 import { sendMessage } from "@/lib/api/messages";
 
 function greeting(hour: number) {
@@ -26,14 +26,22 @@ export default function HomePage() {
 
   useEffect(() => setHello(greeting(new Date().getHours())), []);
 
+  const queryClient = useQueryClient();
   const createChat = useCreateChat();
 
   // Create the chat, send the first turn, then open the chat with the run to poll.
   const start = useMutation({
     mutationFn: async (content: string) => {
       const chat = await createChat.mutateAsync({ title: content.slice(0, 60) });
-      const { runId } = await sendMessage(await getToken(), chat.id, { content });
-      return { chatId: chat.id, runId };
+      try {
+        const { runId } = await sendMessage(await getToken(), chat.id, { content });
+        return { chatId: chat.id, runId };
+      } catch (err) {
+        // Don't leave an empty chat in the sidebar when the first turn fails.
+        await deleteChat(await getToken(), chat.id).catch(() => {});
+        void queryClient.invalidateQueries({ queryKey: chatKeys.all });
+        throw err;
+      }
     },
     onSuccess: ({ chatId, runId }) => router.push(`/chat/${chatId}?run=${runId}`),
   });
