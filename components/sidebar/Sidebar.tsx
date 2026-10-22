@@ -200,7 +200,7 @@ export function Sidebar() {
             <div className="flex h-9 items-center gap-2 rounded-lg border border-border px-2">
               <UserButton />
               <span className="min-w-0 flex-1 truncate text-center text-[13px] font-medium">
-                {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}
+                {user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress}
               </span>
             </div>
           ) : (
