@@ -12,6 +12,7 @@ export function useRunStream(chatId: string, runId: string | null) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const setStreamingText = useChatStore((s) => s.setStreamingText);
+  const setStreamingSteps = useChatStore((s) => s.setStreamingSteps);
   const endRun = useChatStore((s) => s.endRun);
 
   const query = useQuery({
@@ -30,11 +31,12 @@ export function useRunStream(chatId: string, runId: string | null) {
     if (!run) return;
     if (ACTIVE_RUN_STATUSES.includes(run.status)) {
       setStreamingText(run.text);
+      setStreamingSteps(run.toolSteps);
       return;
     }
     endRun();
     void queryClient.invalidateQueries({ queryKey: ["chat", chatId] });
-  }, [run, chatId, setStreamingText, endRun, queryClient]);
+  }, [run, chatId, setStreamingText, setStreamingSteps, endRun, queryClient]);
 
   return { run, error: query.error };
 }
