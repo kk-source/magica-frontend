@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useChat } from "@/lib/api/chats";
 import { meKey } from "@/lib/api/me";
-import { useSendMessage } from "@/lib/api/messages";
+import { useSendMessage, type AttachmentInput } from "@/lib/api/messages";
 import { useCancelRun, useRunStatus } from "@/lib/api/runs";
 import { isActiveRun } from "@/lib/api/schemas";
 import { useChatStore } from "@/lib/stores/chat.store";
@@ -14,6 +14,8 @@ import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 
 const PENDING_TIMEOUT_MS = 90_000;
+
+type Turn = { content: string; attachments: AttachmentInput[] };
 
 export function ChatView({ chatId }: { chatId: string }) {
   const initialRunId = useSearchParams().get("run");
@@ -80,12 +82,20 @@ export function ChatView({ chatId }: { chatId: string }) {
   const cancel = useCancelRun(chatId);
 
   // Show the turn immediately; swap in the server's copy once the POST returns.
-  const dispatch = (content: string) => {
+  const dispatch = ({ content, attachments }: Turn) => {
     setRunError(null);
     const tempId = `temp_${crypto.randomUUID()}`;
-    addPendingMessage({ id: tempId, chatId, role: "user", content, attachments: [], tools: [], createdAt: new Date().toISOString() });
+    addPendingMessage({
+      id: tempId,
+      chatId,
+      role: "user",
+      content,
+      attachments: attachments.map((a) => ({ url: a.url, mimeType: a.mimeType ?? "", fileName: a.fileName ?? "" })),
+      tools: [],
+      createdAt: new Date().toISOString(),
+    });
     send.mutate(
-      { content },
+      { content, attachments },
       {
         onSuccess: ({ message, runId }) => {
           replacePendingMessage(tempId, message);
@@ -96,9 +106,13 @@ export function ChatView({ chatId }: { chatId: string }) {
     );
   };
 
-  const [queued, setQueued] = useState<string[]>([]);
+  const [queued, setQueued] = useState<Turn[]>([]);
   const isRunning = Boolean(activeRunId) || send.isPending;
-  const submit = (content: string) => (isRunning ? setQueued((q) => [...q, content]) : dispatch(content));
+  const submit = (content: string, attachments: AttachmentInput[]) => {
+    const turn = { content, attachments };
+    if (isRunning) setQueued((q) => [...q, turn]);
+    else dispatch(turn);
+  };
 
   // Send queued turns one at a time once the current run finishes.
   useEffect(() => {
@@ -113,7 +127,7 @@ export function ChatView({ chatId }: { chatId: string }) {
   useEffect(() => {
     if (outbox?.chatId !== chatId) return;
     setOutbox(null);
-    dispatch(outbox.content);
+    dispatch(outbox);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outbox, chatId]);
 
@@ -136,7 +150,7 @@ export function ChatView({ chatId }: { chatId: string }) {
   return (
     <div className="flex h-full flex-col">
       <ChatHeader />
-      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued} />
+      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
         <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />

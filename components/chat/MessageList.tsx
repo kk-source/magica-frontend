@@ -32,6 +32,7 @@ export function MessageList({ messages, liveRun, awaitingRun, queued = [] }: Mes
               key={m.id}
               role={m.role}
               content={m.content}
+              attachments={m.attachments}
               toolSteps={m.toolSteps}
               tools={m.tools}
               credits={m.credits}

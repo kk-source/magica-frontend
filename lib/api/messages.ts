@@ -12,7 +12,9 @@ const SendMessageResponseSchema = z.object({
   runId: z.string(),
 });
 export type SendMessageResponse = z.infer<typeof SendMessageResponseSchema>;
-export type SendMessageInput = { content: string; attachments?: string[]; idempotencyKey?: string };
+/** A file already uploaded to Transloadit. */
+export type AttachmentInput = { url: string; mimeType?: string; fileName?: string; fileSizeBytes?: number };
+export type SendMessageInput = { content: string; attachments?: AttachmentInput[]; idempotencyKey?: string };
 
 export const listMessages = (token: string | null, chatId: string) =>
   apiFetch(`/api/chats/${chatId}/messages`, z.array(MessageSchema), { token });

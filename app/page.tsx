@@ -10,7 +10,10 @@ import { Composer } from "@/components/chat/Composer";
 import { TemplateGallery } from "@/components/home/TemplateGallery";
 import { Button } from "@/components/ui/button";
 import { useCreateChat } from "@/lib/api/chats";
+import type { AttachmentInput } from "@/lib/api/messages";
 import { useChatStore } from "@/lib/stores/chat.store";
+
+type Turn = { content: string; attachments: AttachmentInput[] };
 
 function greeting(hour: number) {
   if (hour < 12) return "Good morning";
@@ -31,16 +34,16 @@ export default function HomePage() {
 
   // Create the chat and open it; the chat page sends the first turn so it renders immediately.
   const start = useMutation({
-    mutationFn: (content: string) => createChat.mutateAsync({ title: content.slice(0, 60) }),
-    onSuccess: (chat, content) => {
-      setOutbox({ chatId: chat.id, content });
+    mutationFn: ({ content }: Turn) => createChat.mutateAsync({ title: content.slice(0, 60) }),
+    onSuccess: (chat, { content, attachments }) => {
+      setOutbox({ chatId: chat.id, content, attachments });
       router.push(`/chat/${chat.id}`);
     },
   });
 
-  const submit = (text: string) => {
+  const submit = (content: string, attachments: AttachmentInput[]) => {
     if (!isSignedIn) return openSignIn();
-    start.mutate(text);
+    start.mutate({ content, attachments });
   };
 
   return (
