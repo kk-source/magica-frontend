@@ -123,7 +123,8 @@ export function Sidebar() {
               </Button>
             )}
           </div>
-          <ScrollArea className="min-h-0 flex-1 px-2">
+          {/* Radix wraps content in a display:table div that grows with long titles and pushes the delete button off-screen. */}
+          <ScrollArea className="min-h-0 flex-1 px-2 [&_[data-slot=scroll-area-viewport]>div]:!block">
             {chats.length === 0 ? (
               <p className="px-2 py-1.5 text-xs text-muted-foreground">
                 {!isSignedIn ? "Sign in to see your tasks" : isLoading ? "Loading…" : "No tasks yet"}

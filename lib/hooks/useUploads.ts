@@ -53,8 +53,13 @@ export function useUploads() {
     const onRestriction = (_file: unknown, err: Error) => setRestrictionError(err.message);
     const sync = () => setItems(uppy.getFiles().map(toItem));
     const onUpload = (uploaded: AssemblyFile) => {
-      // Match the Assembly's upload back to the local file (same name + size).
-      const local = uppy.getFiles().find((f) => !f.meta.url && f.name === uploaded.name && f.size === uploaded.size);
+      // The plugin records which local file each Assembly upload came from. Transloadit can report a
+      // different size than the local file (it rewrites metadata), so name + size is only a fallback.
+      const localId = uppy.getPlugin<Transloadit<FileMeta, Record<string, never>>>("Transloadit")?.getPluginState()
+        .files[uploaded.id]?.id;
+      const local = localId
+        ? uppy.getFile(localId)
+        : uppy.getFiles().find((f) => !f.meta.url && f.name === uploaded.name);
       if (local && uploaded.ssl_url) uppy.setFileMeta(local.id, { url: uploaded.ssl_url, mimeType: uploaded.mime ?? local.type });
     };
     uppy.on("state-update", sync);
