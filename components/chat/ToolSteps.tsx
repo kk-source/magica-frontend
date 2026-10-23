@@ -8,6 +8,18 @@ function formatElapsed(ms: number) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
+/** A running step's elapsed time, ticking locally between server updates. */
+function useElapsed(ticking: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!ticking) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [ticking]);
+  return (step: ToolStep) =>
+    step.status === "running" && step.startedAt ? Math.max(step.elapsedMs, now - step.startedAt) : step.elapsedMs;
+}
+
 // Done: "Loaded skill, generated image". Matches Galaxy's collapsed summary.
 function summarize(steps: ToolStep[]) {
   const labels = [...new Set(steps.map((s) => s.label))];
@@ -20,6 +32,7 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
   // Expanded while a step is running, collapsed to the summary once everything finishes.
   const isRunning = Boolean(running);
   useEffect(() => setOpen(isRunning), [isRunning]);
+  const elapsed = useElapsed(isRunning);
   if (steps.length === 0) return null;
 
   return (
@@ -32,7 +45,7 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
           <span className="flex items-center gap-1.5">
             <span className="tracking-widest">···</span>
             {running.label}
-            <span className="tabular-nums">{Math.floor(running.elapsedMs / 1000)}s</span>
+            <span className="tabular-nums">{Math.floor(elapsed(running) / 1000)}s</span>
           </span>
         ) : (
           summarize(steps)
@@ -50,7 +63,7 @@ export function ToolSteps({ steps }: { steps: ToolStep[] }) {
                 {step.label}
                 {step.boldArg && <strong className="ml-1 font-semibold text-foreground">{step.boldArg}</strong>}
               </span>
-              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatElapsed(step.elapsedMs)}</span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatElapsed(elapsed(step))}</span>
             </li>
           ))}
         </ul>
