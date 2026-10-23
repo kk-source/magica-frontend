@@ -76,6 +76,22 @@ export const isActiveRun = (status: RunStatus | null | undefined) => !!status &&
 
 export type Media = { kind: "image" | "video"; url: string };
 
+/**
+ * Drops generated-media URLs from reply text (markdown images, links and bare URLs), since the media
+ * already renders inline below the reply. Also drops echoed `<tool_result>` context tags.
+ */
+export function stripMediaUrls(text: string, media: Media[]): string {
+  let out = text.replace(/<tool_result[^>]*>[\s\S]*?<\/tool_result>/g, "");
+  for (const { url } of media) {
+    const u = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out
+      .replace(new RegExp(`!\\[[^\\]]*\\]\\(${u}\\)`, "g"), "")
+      .replace(new RegExp(`\\[([^\\]]*)\\]\\(${u}\\)`, "g"), (_, label: string) => (label === url ? "" : label))
+      .replace(new RegExp(`<?${u}>?`, "g"), "");
+  }
+  return out.replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /** Images and videos produced by successful tool calls, in call order. */
 export function mediaFromTools(tools: ToolEvent[]): Media[] {
   return tools.flatMap((e): Media[] => {
