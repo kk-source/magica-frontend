@@ -32,6 +32,8 @@ export const ToolStepSchema = z.object({
   /** Highlighted argument shown in bold after the label, e.g. a skill name or prompt. */
   boldArg: z.string().nullish(),
   elapsedMs: z.number(),
+  /** Worker clock when the step started; lets a running step's timer tick between updates. */
+  startedAt: z.number().nullish(),
   status: z.enum(["running", "done", "failed"]),
 });
 export type ToolStep = z.infer<typeof ToolStepSchema>;
@@ -64,6 +66,8 @@ export const RunSchema = z.object({
   toolSteps: z.array(ToolStepSchema),
   credits: z.number(),
   error: z.string().nullish(),
+  /** Trigger.dev Realtime subscription for live progress; present while the run is active. */
+  realtime: z.object({ runId: z.string(), accessToken: z.string() }).nullish(),
 });
 export type Run = z.infer<typeof RunSchema>;
 
