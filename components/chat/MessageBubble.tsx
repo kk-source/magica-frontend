@@ -71,7 +71,7 @@ function InlineMedia({ tools }: { tools: ToolEvent[] }) {
       {media.map(({ kind, url }) =>
         kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={url} src={url} alt="Generated image" className="aspect-square w-full max-w-96 rounded-xl object-cover" />
+          <img key={url} src={url} alt="Generated image" className="h-auto max-h-96 w-auto max-w-full rounded-xl sm:max-w-96" />
         ) : (
           <video key={url} src={url} controls className="w-full max-w-md rounded-xl" />
         ),

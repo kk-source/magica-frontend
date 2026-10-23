@@ -32,14 +32,14 @@ const TEMPLATES: { title: string; prompt: string; category: Exclude<Category, "A
   },
   {
     title: "Merge clips into a reel",
-    prompt: "Merge my uploaded video clips into a single reel in the order I uploaded them.",
+    prompt: "Merge these two clips into a single reel, in order: https://samplelib.com/lib/preview/mp4/sample-5s.mp4 and https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
     category: "Viral Video Formats",
     icon: Film,
     gradient: "from-sky-500/60 to-cyan-700/60",
   },
   {
     title: "Build a short video montage",
-    prompt: "Combine these clips into a 30-second montage for a product launch.",
+    prompt: "Combine these clips into a short montage with a fade between them: https://samplelib.com/lib/preview/mp4/sample-5s.mp4 and https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
     category: "Video Special Effects",
     icon: Clapperboard,
     gradient: "from-emerald-500/60 to-teal-700/60",
