@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, Coins, Copy, GitFork, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isActiveRun, mediaFromTools, type Attachment, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
+import { isActiveRun, mediaFromTools, stripMediaUrls, type Attachment, type Media, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
 import { cn, formatCredits } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { ToolSteps } from "./ToolSteps";
@@ -44,26 +44,30 @@ export function MessageBubble({ role, content, attachments = [], toolSteps, tool
     );
   }
 
+  const media = mediaFromTools(tools ?? []);
+  const text = media.length ? stripMediaUrls(content, media) : content;
+  // Tools are done but the run isn't: the model is writing its closing reply.
+  const writing = pending && !!toolSteps?.length && toolSteps.every((s) => s.status !== "running");
+
   return (
     <div className={cn("min-w-0 text-[15px] leading-relaxed", role === "tool" && "text-sm text-muted-foreground")}>
       <ToolSteps steps={toolSteps ?? []} />
-      {content && <Markdown>{content}</Markdown>}
-      <InlineMedia tools={tools ?? []} />
+      {text && <Markdown>{text}</Markdown>}
+      <InlineMedia media={media} />
       {pending && (
         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          {!content && "Thinking…"}
+          {writing ? "Writing reply…" : !text && "Thinking…"}
         </span>
       )}
       {status === "FAILED" && <p className="text-sm text-destructive">{error ?? "Something went wrong."}</p>}
       {status === "CANCELLED" && <p className="text-sm text-muted-foreground">Stopped.</p>}
-      {!pending && role === "assistant" && <MessageFooter content={content} credits={credits} createdAt={createdAt} />}
+      {!pending && role === "assistant" && <MessageFooter content={text} credits={credits} createdAt={createdAt} />}
     </div>
   );
 }
 
-function InlineMedia({ tools }: { tools: ToolEvent[] }) {
-  const media = mediaFromTools(tools);
+function InlineMedia({ media }: { media: Media[] }) {
   if (media.length === 0) return null;
 
   return (

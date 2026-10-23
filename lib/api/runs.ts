@@ -61,6 +61,15 @@ export function useRunStatus(chatId: string, runId: string | null) {
     onComplete: () => void queryClient.invalidateQueries({ queryKey: ["run", chatId, runId] }),
   });
 
+  // The worker flags COMPLETE in metadata right after persisting the reply; refetch now instead of
+  // waiting for the run to wind down or the next safety poll.
+  const liveStatus = (live?.metadata as { status?: unknown } | undefined)?.status;
+  useEffect(() => {
+    if (active && typeof liveStatus === "string" && liveStatus !== "PENDING" && liveStatus !== "STREAMING") {
+      void queryClient.invalidateQueries({ queryKey: ["run", chatId, runId] });
+    }
+  }, [active, liveStatus, queryClient, chatId, runId]);
+
   const data = useMemo((): Run | undefined => {
     if (!base || !active || !live) return base;
     const meta = LiveMetadataSchema.safeParse(live.metadata ?? {});
