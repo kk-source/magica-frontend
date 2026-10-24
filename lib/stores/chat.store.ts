@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { AttachmentInput } from "@/lib/api/messages";
 import type { Message, Run } from "@/lib/api/schemas";
 
@@ -24,7 +25,11 @@ type ChatState = {
   endRun: () => void;
 };
 
-export const useChatStore = create<ChatState>((set) => ({
+// Only the outbox is persisted (per tab): if the home -> chat navigation turns into a full reload,
+// the first message still gets sent instead of being dropped with the in-memory store.
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set) => ({
   activeChatId: null,
   pendingMessages: [],
   activeRunId: null,
@@ -40,4 +45,11 @@ export const useChatStore = create<ChatState>((set) => ({
   startRun: (runId) => set({ activeRunId: runId, liveRun: null }),
   setLiveRun: (liveRun) => set({ liveRun }),
   endRun: () => set({ activeRunId: null, liveRun: null }),
-}));
+    }),
+    {
+      name: "magica-outbox",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (s) => ({ outbox: s.outbox }),
+    },
+  ),
+);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
@@ -10,7 +10,7 @@ import { RunSchema, RunStatusSchema, ToolEventSchema, ToolStepSchema, WaitpointS
 
 /** Without Realtime (no token) we poll fast; with it, a slow poll only backs up stalls and crashes. */
 const POLL_MS = 1000;
-const SAFETY_POLL_MS = 5000;
+const SAFETY_POLL_MS = 15_000;
 
 /** What the agent-run task writes to its Trigger.dev run metadata as it streams. */
 const LiveMetadataSchema = z.object({
@@ -21,8 +21,9 @@ const LiveMetadataSchema = z.object({
   waitpoint: WaitpointSchema.nullish(),
 });
 
-export const getRunStatus = (token: string | null, chatId: string, runId: string) =>
-  apiFetch(`/api/chats/${chatId}/runs/${runId}`, RunSchema, { token });
+/** `withRealtime: false` once subscribed, so the backend doesn't mint a token on every poll. */
+export const getRunStatus = (token: string | null, chatId: string, runId: string, withRealtime = true) =>
+  apiFetch(`/api/chats/${chatId}/runs/${runId}${withRealtime ? "" : "?realtime=0"}`, RunSchema, { token });
 
 export const cancelRun = (token: string | null, chatId: string, runId: string) =>
   apiFetch(`/api/chats/${chatId}/runs/${runId}/cancel`, z.unknown(), { method: "POST", token });
@@ -35,23 +36,28 @@ export const cancelRun = (token: string | null, chatId: string, runId: string) =
 export function useRunStatus(chatId: string, runId: string | null) {
   const token = useApiToken();
   const queryClient = useQueryClient();
+  // Run id we hold a Realtime token for; later polls skip minting a new one.
+  const subscribed = useRef<string | null>(null);
   const query = useQuery({
     queryKey: ["run", chatId, runId],
-    queryFn: async () => getRunStatus(await token(), chatId, runId!),
+    queryFn: async () => getRunStatus(await token(), chatId, runId!, subscribed.current !== runId),
     enabled: Boolean(runId),
     staleTime: 0,
     refetchInterval: (q) => {
       const run = q.state.data;
       if (run && !isActiveRun(run.status)) return false;
-      return run?.realtime ? SAFETY_POLL_MS : POLL_MS;
+      return run?.realtime || subscribed.current === runId ? SAFETY_POLL_MS : POLL_MS;
     },
   });
   const base = query.data;
 
-  // Every poll mints a fresh token; keep the first one so the subscription isn't torn down.
+  // Keep the first token so the subscription isn't torn down by later polls.
   const [sub, setSub] = useState<{ runId: string; realtime: NonNullable<Run["realtime"]> } | null>(null);
   useEffect(() => {
-    if (runId && base?.realtime && sub?.runId !== runId) setSub({ runId, realtime: base.realtime });
+    if (runId && base?.realtime && sub?.runId !== runId) {
+      subscribed.current = runId;
+      setSub({ runId, realtime: base.realtime });
+    }
   }, [runId, base?.realtime, sub?.runId]);
 
   const active = Boolean(base && isActiveRun(base.status));

@@ -175,6 +175,11 @@ export function ChatView({ chatId }: { chatId: string }) {
     );
   }, [history, pendingMessages, activeRunId]);
 
+  // The reply is final once the run is terminal; don't keep the stop button up while the persisted
+  // copy is refetched.
+  const replyDone = Boolean(liveRun && liveRun.id === activeRunId && !isActiveRun(liveRun.status));
+  const showStop = isRunning && !replyDone;
+
   const suggestion = isRunning ? null : messages.findLast((m) => m.role === "assistant")?.suggestions?.[0];
   const error = chatError?.message ?? send.error?.message ?? cancel.error?.message ?? runError;
 
@@ -188,7 +193,7 @@ export function ChatView({ chatId }: { chatId: string }) {
         liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
       <div className="mx-auto w-full max-w-[932px] px-4 pb-4">
         {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
-        <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />
+        <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={showStop} />
       </div>
     </div>
   );
