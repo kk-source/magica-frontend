@@ -137,25 +137,24 @@ export function ChatView({ chatId }: { chatId: string }) {
 
   const stopRun = (runId: string) => {
     // Stop at once: freeze the partial reply as a stopped message; the refetch swaps in the server's copy.
-    queryClient.setQueryData<Awaited<ReturnType<typeof getChat>>>(chatKeys.detail(chatId), (c) => {
-      if (!c) return c;
-      const frozen = {
-        content: liveRun?.text ?? "",
-        tools: liveRun?.tools ?? [],
-        toolSteps: liveRun?.toolSteps,
-        status: "CANCELLED" as const,
-      };
-      const found = c.messages.some((m) => m.role === "assistant" && m.runId === runId);
-      const messages = found
-        ? c.messages.map((m) => (m.role === "assistant" && m.runId === runId ? { ...m, ...frozen } : m))
-        : [
-            ...c.messages,
-            { id: `stopped_${runId}`, chatId, role: "assistant" as const, runId, attachments: [], createdAt: new Date().toISOString(), ...frozen },
-          ];
-      return { ...c, messages };
-    });
+    const frozen = {
+      content: liveRun?.text ?? "",
+      tools: liveRun?.tools ?? [],
+      toolSteps: liveRun?.toolSteps,
+      status: "CANCELLED" as const,
+    };
+    const isRunReply = (m: { role: string; runId?: string | null }) => m.role === "assistant" && m.runId === runId;
+    const tempId = `stopped_${runId}`;
+    if (history.some(isRunReply)) {
+      queryClient.setQueryData<Awaited<ReturnType<typeof getChat>>>(chatKeys.detail(chatId), (c) =>
+        c && { ...c, messages: c.messages.map((m) => (isRunReply(m) ? { ...m, ...frozen } : m)) },
+      );
+    } else {
+      // A pending turn, so it sorts after the user's (also pending) message.
+      addPendingMessage({ id: tempId, chatId, role: "assistant", runId, attachments: [], createdAt: new Date().toISOString(), ...frozen });
+    }
     endRun();
-    cancel.mutate(runId, { onSettled: () => void refetch() });
+    cancel.mutate(runId, { onSettled: () => void refetch().then(() => removePendingMessage(tempId)) });
   };
   const stop = () => {
     if (activeRunId) stopRun(activeRunId);
