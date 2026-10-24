@@ -38,6 +38,7 @@ The API and agent runtime live in a separate repo: [magica-backend](https://gith
 2. The user turn shows immediately as an optimistic message while `POST /api/chats/:id/messages` returns `{ message, runId }`. Messages typed while a run is active are queued, not dropped.
 3. `useRunStatus` (`lib/api/runs.ts`) fetches the run. While it is active the backend returns a Realtime token, and the hook subscribes to the Trigger.dev run so streamed text and tool steps update instantly. A 5s poll is the fallback.
 4. When the run finishes the chat query refetches and the persisted assistant message (text, inline media, credit cost, follow-up chips) replaces the live view. The stop button cancels a running agent.
+5. If the run pauses on a waitpoint (status `WAITING`: credit approval before an image, or an `ask_user` choice), the live bubble shows `WaitpointCard` with the question and option buttons. The first click posts `POST /api/chats/:id/waitpoints/:waitpointId`; the buttons then lock, and duplicate submits get the stored answer back from the backend. The question comes from both Realtime metadata and the run route, so it is restored after a reload.
 
 ### UI, matching the reference app
 

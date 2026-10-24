@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Check, Coins, Copy, GitFork, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isActiveRun, mediaFromTools, stripMediaUrls, type Attachment, type Media, type Message, type RunStatus, type ToolEvent, type ToolStep } from "@/lib/api/schemas";
+import { isActiveRun, mediaFromTools, stripMediaUrls, type Attachment, type Media, type Message, type RunStatus, type ToolEvent, type ToolStep, type Waitpoint } from "@/lib/api/schemas";
 import { cn, formatCredits } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { ToolSteps } from "./ToolSteps";
+import { WaitpointCard } from "./WaitpointCard";
 
 type MessageBubbleProps = {
   role: Message["role"];
@@ -20,9 +21,13 @@ type MessageBubbleProps = {
   createdAt?: string;
   status?: RunStatus | null;
   error?: string | null;
+  /** A question the in-flight run is paused on; needs `chatId` and `runId` to answer. */
+  waitpoint?: Waitpoint | null;
+  chatId?: string;
+  runId?: string | null;
 };
 
-export function MessageBubble({ role, content, attachments = [], toolSteps, tools, credits, createdAt, status, error }: MessageBubbleProps) {
+export function MessageBubble({ role, content, attachments = [], toolSteps, tools, credits, createdAt, status, error, waitpoint, chatId, runId = null }: MessageBubbleProps) {
   const pending = isActiveRun(status);
   if (role === "user") {
     return (
@@ -55,7 +60,8 @@ export function MessageBubble({ role, content, attachments = [], toolSteps, tool
       <ToolSteps steps={(toolSteps ?? []).map((s) => (!pending && s.status === "running" ? { ...s, status: "failed" } : s))} />
       {text && <Markdown>{text}</Markdown>}
       <InlineMedia media={media} />
-      {pending && (
+      {status === "WAITING" && waitpoint && chatId && <WaitpointCard key={waitpoint.id} chatId={chatId} runId={runId} waitpoint={waitpoint} />}
+      {pending && !(status === "WAITING" && waitpoint) && (
         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           {writing ? "Writing reply…" : !text && "Thinking…"}

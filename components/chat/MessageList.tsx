@@ -6,6 +6,7 @@ import type { Message, Run } from "@/lib/api/schemas";
 import { MessageBubble } from "./MessageBubble";
 
 type MessageListProps = {
+  chatId: string;
   messages: Message[];
   /** Snapshot of the in-flight run, rendered as a streaming assistant bubble. */
   liveRun: Run | null;
@@ -17,12 +18,12 @@ type MessageListProps = {
   loading?: boolean;
 };
 
-export function MessageList({ messages, liveRun, awaitingRun, queued = [], loading = false }: MessageListProps) {
+export function MessageList({ chatId, messages, liveRun, awaitingRun, queued = [], loading = false }: MessageListProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, liveRun?.text, liveRun?.toolSteps.length, liveRun?.tools.length, liveRun?.status, queued.length]);
+  }, [messages.length, liveRun?.text, liveRun?.toolSteps.length, liveRun?.tools.length, liveRun?.status, liveRun?.waitpoint?.id, queued.length]);
 
   return (
     <ScrollArea className="min-h-0 flex-1">
@@ -51,6 +52,9 @@ export function MessageList({ messages, liveRun, awaitingRun, queued = [], loadi
             tools={liveRun?.tools}
             status={liveRun?.status ?? "PENDING"}
             error={liveRun?.error}
+            waitpoint={liveRun?.waitpoint}
+            chatId={chatId}
+            runId={liveRun?.id}
           />
         )}
         {queued.map((text, i) => (

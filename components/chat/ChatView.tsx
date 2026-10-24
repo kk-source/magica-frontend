@@ -182,6 +182,7 @@ export function ChatView({ chatId }: { chatId: string }) {
     <div className="flex h-full flex-col">
       <ChatHeader showFiles />
       <MessageList
+        chatId={chatId}
         messages={messages}
         loading={chatLoading && messages.length === 0}
         liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
