@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // HTTP contract. Mirrors magica-backend lib/contracts.ts — keep the two in sync.
 
-export const RunStatusSchema = z.enum(["PENDING", "STREAMING", "COMPLETE", "FAILED", "CANCELLED"]);
+export const RunStatusSchema = z.enum(["PENDING", "STREAMING", "WAITING", "COMPLETE", "FAILED", "CANCELLED"]);
 export type RunStatus = z.infer<typeof RunStatusSchema>;
 
 export const ChatSchema = z.object({
@@ -57,6 +57,17 @@ export const MessageSchema = z.object({
 });
 export type Message = z.infer<typeof MessageSchema>;
 
+/** A question a paused run is waiting on: credit approval or a choice between options. */
+export const WaitpointSchema = z.object({
+  id: z.string(),
+  type: z.enum(["credit", "options"]),
+  question: z.string(),
+  options: z.array(z.string()),
+  estimatedCredits: z.number().optional(),
+  expiresAt: z.string(),
+});
+export type Waitpoint = z.infer<typeof WaitpointSchema>;
+
 export const RunSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -68,10 +79,12 @@ export const RunSchema = z.object({
   error: z.string().nullish(),
   /** Trigger.dev Realtime subscription for live progress; present while the run is active. */
   realtime: z.object({ runId: z.string(), accessToken: z.string() }).nullish(),
+  /** Set while the run is WAITING on the user. */
+  waitpoint: WaitpointSchema.nullish(),
 });
 export type Run = z.infer<typeof RunSchema>;
 
-export const ACTIVE_RUN_STATUSES: readonly RunStatus[] = ["PENDING", "STREAMING"];
+export const ACTIVE_RUN_STATUSES: readonly RunStatus[] = ["PENDING", "STREAMING", "WAITING"];
 export const isActiveRun = (status: RunStatus | null | undefined) => !!status && ACTIVE_RUN_STATUSES.includes(status);
 
 export type Media = { kind: "image" | "video"; url: string };

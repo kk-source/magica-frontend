@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { useApiToken } from "@/lib/hooks/useApiToken";
 import { apiFetch } from "./client";
-import { RunSchema, RunStatusSchema, ToolEventSchema, ToolStepSchema, isActiveRun, type Run } from "./schemas";
+import { RunSchema, RunStatusSchema, ToolEventSchema, ToolStepSchema, WaitpointSchema, isActiveRun, type Run } from "./schemas";
 
 /** Without Realtime (no token) we poll fast; with it, a slow poll only backs up stalls and crashes. */
 const POLL_MS = 1000;
@@ -18,6 +18,7 @@ const LiveMetadataSchema = z.object({
   text: z.string().optional(),
   tools: z.array(ToolEventSchema).optional(),
   toolSteps: z.array(ToolStepSchema).optional(),
+  waitpoint: WaitpointSchema.nullish(),
 });
 
 export const getRunStatus = (token: string | null, chatId: string, runId: string) =>
@@ -74,11 +75,14 @@ export function useRunStatus(chatId: string, runId: string | null) {
     if (!base || !active || !live) return base;
     const meta = LiveMetadataSchema.safeParse(live.metadata ?? {});
     if (!meta.success) return base;
-    const { status, text, tools, toolSteps } = meta.data;
+    const { status: liveStatus, text, tools, toolSteps, waitpoint } = meta.data;
+    // Terminal statuses come from the refetch, after the reply is persisted.
+    const status = liveStatus && isActiveRun(liveStatus) ? liveStatus : base.status;
     return {
       ...base,
-      // Terminal statuses come from the refetch, after the reply is persisted.
-      status: status && isActiveRun(status) ? status : base.status,
+      status,
+      // The REST copy (from Postgres) covers a waitpoint opened before the subscription connected.
+      waitpoint: status === "WAITING" ? (waitpoint ?? base.waitpoint) : null,
       text: text ?? base.text,
       tools: tools ?? base.tools,
       toolSteps: toolSteps ?? base.toolSteps,
