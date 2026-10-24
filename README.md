@@ -99,6 +99,16 @@ Pushes to `main` deploy automatically.
 - **TanStack Query for server state, Zustand for client state.** Query owns chats, messages, runs and credits (caching, refetch, invalidation). Zustand holds only things the server does not know yet: the active run, optimistic turns, the outbox and UI toggles.
 - **Realtime with a polling fallback.** Trigger.dev Realtime gives token-by-token text and live tool steps without the backend holding open connections. A slow poll still finishes the turn if the socket drops, and timers tick client-side from each step's `startedAt`.
 - **Optimistic user turns.** The message shows instantly, which matters because creating a run takes a round trip.
+- **Waitpoint state from two sources.** The approval card reads the question from Realtime metadata for instant display and from the run route for reloads, so a paused run is never lost on refresh. The backend enforces exactly-once; the UI just locks its buttons after the first click.
 - **Direct-to-Transloadit uploads.** Large images and videos skip Vercel's body limits and upload resumably; only the resulting URL is sent with the message.
 - **Hand-written shadcn components.** The shadcn registry was unreachable from the build environment, so the few needed primitives were written on Radix in the same style.
 - **Out of scope for the timeline:** automated tests, mobile-first layout polish, and the decorative nav items from the reference app (shown disabled).
+
+## What I'd improve with more time
+
+- **Tests.** Component tests for `ToolSteps`, `WaitpointCard` and the composer queue, plus a Playwright end-to-end run against a mocked backend.
+- **Older messages and search.** Infinite scroll for long chats and a search box over chat titles and content.
+- **Retry and branch.** A retry button on failed turns and a working branch action (currently visual only).
+- **Thinking stream.** Show the model's reasoning live, as the reference app does.
+- **Mobile layout** and full keyboard and screen-reader accessibility.
+- **Shared contract package** with the backend so `lib/api/schemas.ts` isn't a hand-maintained copy.
