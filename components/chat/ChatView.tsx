@@ -44,7 +44,7 @@ export function ChatView({ chatId }: { chatId: string }) {
     window.history.replaceState(null, "", `/chat/${chatId}`);
   }, [chatId, initialRunId, startRun]);
 
-  const { data: chat, error: chatError, refetch } = useChat(chatId);
+  const { data: chat, error: chatError, isLoading: chatLoading, refetch } = useChat(chatId);
   const history = useMemo(() => chat?.messages ?? [], [chat]);
 
   // Resume polling if the page loads while a reply is still being generated.
@@ -181,7 +181,10 @@ export function ChatView({ chatId }: { chatId: string }) {
   return (
     <div className="flex h-full flex-col">
       <ChatHeader showFiles />
-      <MessageList messages={messages} liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
+      <MessageList
+        messages={messages}
+        loading={chatLoading && messages.length === 0}
+        liveRun={activeRunId ? liveRun : null} awaitingRun={isRunning} queued={queued.map((t) => t.content)} />
       <div className="mx-auto w-full max-w-[932px] px-4 pb-4">
         {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
         <Composer onSubmit={submit} onStop={stop} variant="chat" suggestion={suggestion} isStreaming={isRunning} />

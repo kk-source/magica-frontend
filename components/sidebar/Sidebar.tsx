@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SignInButton, UserButton, useAuth, useUser } from "@clerk/nextjs";
@@ -7,6 +8,7 @@ import {
   BookOpen,
   CirclePlus,
   FolderOpen,
+  Loader2,
   LifeBuoy,
   type LucideIcon,
   MessageSquare,
@@ -21,6 +23,14 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChats, useCreateChat, useDeleteChat } from "@/lib/api/chats";
@@ -52,11 +62,18 @@ export function Sidebar() {
   const createChat = useCreateChat();
 
   const deleteChat = useDeleteChat();
-  const removeChat = (chatId: string) =>
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const chatId = pendingDelete.id;
     deleteChat.mutate(chatId, {
-      // Leave a chat that no longer exists.
-      onSuccess: () => pathname === `/chat/${chatId}` && router.push("/"),
+      onSuccess: () => {
+        setPendingDelete(null);
+        // Leave a chat that no longer exists.
+        if (pathname === `/chat/${chatId}`) router.push("/");
+      },
     });
+  };
 
   const newChat = () =>
     createChat.mutate({}, { onSuccess: (chat) => router.push(`/chat/${chat.id}`) });
@@ -139,8 +156,10 @@ export function Sidebar() {
                     active={pathname === `/chat/${chat.id}`}
                   />
                   <button
-                    onClick={() => removeChat(chat.id)}
-                    disabled={deleteChat.isPending}
+                    onClick={() => {
+                      deleteChat.reset();
+                      setPendingDelete({ id: chat.id, title: chat.title });
+                    }}
                     aria-label={`Delete ${chat.title}`}
                     className="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground group-hover:block"
                   >
@@ -153,6 +172,31 @@ export function Sidebar() {
         </>
       )}
       {collapsed && <div className="flex-1" />}
+
+      <Dialog
+        open={pendingDelete !== null}
+        // Keep the dialog up while the delete is in flight.
+        onOpenChange={(open) => !open && !deleteChat.isPending && setPendingDelete(null)}
+      >
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => deleteChat.isPending && e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Delete task?</DialogTitle>
+            <DialogDescription>
+              &ldquo;{pendingDelete?.title}&rdquo; and all its messages will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteChat.error && <p className="text-sm text-destructive">{deleteChat.error.message}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)} disabled={deleteChat.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteChat.isPending}>
+              {deleteChat.isPending && <Loader2 className="animate-spin" />}
+              {deleteChat.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {collapsed ? (
         <div className="flex flex-col items-center gap-1 border-t border-border p-2">
