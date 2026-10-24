@@ -51,7 +51,8 @@ export function MessageBubble({ role, content, attachments = [], toolSteps, tool
 
   return (
     <div className={cn("min-w-0 text-[15px] leading-relaxed", role === "tool" && "text-sm text-muted-foreground")}>
-      <ToolSteps steps={toolSteps ?? []} />
+      {/* A stopped or failed run leaves its last step unfinished; don't keep it spinning. */}
+      <ToolSteps steps={(toolSteps ?? []).map((s) => (!pending && s.status === "running" ? { ...s, status: "failed" } : s))} />
       {text && <Markdown>{text}</Markdown>}
       <InlineMedia media={media} />
       {pending && (

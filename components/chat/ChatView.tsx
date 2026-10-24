@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useChat } from "@/lib/api/chats";
+import { chatKeys, useChat, type getChat } from "@/lib/api/chats";
 import { meKey } from "@/lib/api/me";
 import { useSendMessage, type AttachmentInput } from "@/lib/api/messages";
 import { useCancelRun, useRunStatus } from "@/lib/api/runs";
@@ -81,9 +81,13 @@ export function ChatView({ chatId }: { chatId: string }) {
   const send = useSendMessage(chatId);
   const cancel = useCancelRun(chatId);
 
+  // Stop pressed before the POST returned a run id: cancel as soon as it does.
+  const stopRequested = useRef(false);
+
   // Show the turn immediately; swap in the server's copy once the POST returns.
   const dispatch = ({ content, attachments }: Turn) => {
     setRunError(null);
+    stopRequested.current = false;
     const tempId = `temp_${crypto.randomUUID()}`;
     addPendingMessage({
       id: tempId,
@@ -131,10 +135,38 @@ export function ChatView({ chatId }: { chatId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outbox, chatId]);
 
-  const stop = () => {
-    if (!activeRunId) return;
-    cancel.mutate(activeRunId, { onSettled: () => void refetch().then(endRun) });
+  const stopRun = (runId: string) => {
+    // Stop at once: freeze the partial reply as a stopped message; the refetch swaps in the server's copy.
+    queryClient.setQueryData<Awaited<ReturnType<typeof getChat>>>(chatKeys.detail(chatId), (c) => {
+      if (!c) return c;
+      const frozen = {
+        content: liveRun?.text ?? "",
+        tools: liveRun?.tools ?? [],
+        toolSteps: liveRun?.toolSteps,
+        status: "CANCELLED" as const,
+      };
+      const found = c.messages.some((m) => m.role === "assistant" && m.runId === runId);
+      const messages = found
+        ? c.messages.map((m) => (m.role === "assistant" && m.runId === runId ? { ...m, ...frozen } : m))
+        : [
+            ...c.messages,
+            { id: `stopped_${runId}`, chatId, role: "assistant" as const, runId, attachments: [], createdAt: new Date().toISOString(), ...frozen },
+          ];
+      return { ...c, messages };
+    });
+    endRun();
+    cancel.mutate(runId, { onSettled: () => void refetch() });
   };
+  const stop = () => {
+    if (activeRunId) stopRun(activeRunId);
+    else if (send.isPending) stopRequested.current = true;
+  };
+  useEffect(() => {
+    if (!activeRunId || !stopRequested.current) return;
+    stopRequested.current = false;
+    stopRun(activeRunId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRunId]);
 
   const messages = useMemo(() => {
     const ids = new Set(history.map((m) => m.id));
