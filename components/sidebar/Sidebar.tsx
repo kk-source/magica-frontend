@@ -277,6 +277,8 @@ function SidebarLink({
   const link = (
     <Link
       href={href}
+      // Viewport prefetch would fetch every recent chat's page on each load.
+      prefetch={false}
       className={cn(
         "flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-foreground transition-colors hover:bg-accent",
         active && "bg-accent",
